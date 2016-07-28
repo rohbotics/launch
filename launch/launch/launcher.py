@@ -19,6 +19,7 @@ import signal
 import sys
 import threading
 import time
+import subprocess
 
 from launch.exit_handler import ExitHandlerContext
 from launch.launch import LaunchState
@@ -45,6 +46,7 @@ class DefaultLauncher(object):
         self.interrupt_future = asyncio.Future()
         self.launch_complete = threading.Event()
         self.processes_spawned = threading.Event()
+        self.parameters = {}
 
     def add_launch_descriptor(self, launch_descriptor):
         for task_descriptor in launch_descriptor.task_descriptors:
@@ -56,6 +58,9 @@ class DefaultLauncher(object):
                 task_descriptor.name = name
 
             self.task_descriptors.append(task_descriptor)
+        for name, value in launch_descriptor.parameters.items():
+            self.parameters[name] = value
+            print(name)
 
     def interrupt_launch(self):
         with self.loop_lock:
@@ -132,6 +137,11 @@ class DefaultLauncher(object):
         # can say that it was not possible for all of them to be running before
         # this point
         self.processes_spawned.set()
+
+        for p in self.task_descriptors:
+            if 'protocol' in dir(p):
+                for name, value in p.parameters.items():
+                    subprocess.call(['ros2param', 'set', p.name + '/' + name, str(value)])
 
         while True:
             # skip if no more processes to run

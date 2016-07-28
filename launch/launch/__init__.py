@@ -21,6 +21,7 @@ class LaunchDescriptor(object):
 
     def __init__(self):
         self.task_descriptors = []
+        self.parameters = {}
 
     def add_coroutine(self, coroutine, name=None, exit_handler=None):
         if name is not None and name in [p.name for p in self.task_descriptors]:
@@ -32,7 +33,12 @@ class LaunchDescriptor(object):
         self.task_descriptors.append(coroutine_descriptor)
         return coroutine_descriptor
 
-    def add_process(self, cmd, name=None, env=None, output_handlers=None, exit_handler=None):
+    def add_process(self, cmd,
+                    name=None,
+                    env=None,
+                    output_handlers=None,
+                    exit_handler=None,
+                    parameters=None):
         if name is not None and name in [p.name for p in self.task_descriptors]:
             raise RuntimeError("Task name '%s' already used" % name)
         if output_handlers is None:
@@ -42,6 +48,8 @@ class LaunchDescriptor(object):
             exit_handler = default_exit_handler
         process_descriptor = ProcessDescriptor(
             cmd, name, output_handlers, exit_handler, env=env)
+        if parameters is not None:
+            process_descriptor.parameters = parameters
         self.task_descriptors.append(process_descriptor)
         return process_descriptor
 
@@ -72,6 +80,7 @@ class ProcessDescriptor(TaskDescriptor):
         self.env = env
         self.transport = None
         self.protocol = None
+        self.parameters = {}
 
     def send_signal(self, signal):
         if self.transport:
